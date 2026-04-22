@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Expense Tracker - Login{% endblock %}
+
+{% block content %}
+<div class="ag-card ag-hover" style="max-width: 400px; margin: 0 auto; text-align: center;">
+    <h1 style="margin-bottom: 30px; color: var(--primary-color);">Expense Tracker</h1>
+    
+    {% if action == 'signup' %}
+    <div id="signup-section">
+        <h2 style="margin-bottom: 20px;">Sign Up</h2>
+        <form action="/api/register-form" method="POST">
+            <div class="form-group">
+                <input type="text" name="name" class="form-control" placeholder="Full Name" required>
+            </div>
+            <div class="form-group">
+                <input type="email" name="email" class="form-control" placeholder="Email" required>
+            </div>
+            <div class="form-group">
+                <input type="password" name="password" class="form-control" placeholder="Password" required>
+            </div>
+            <button type="submit" class="btn btn-secondary btn-block ag-float">Register</button>
+        </form>
+        <p style="margin-top: 20px; color: var(--text-secondary);">Already have an account? <a href="/login" style="color: var(--primary-color);">Login</a></p>
+    </div>
+    {% else %}
+    <div id="login-section">
+        <h2 style="margin-bottom: 20px;">Login</h2>
+        <form action="/api/login-form" method="POST">
+            <div class="form-group">
+                <input type="email" name="username" class="form-control" placeholder="Email" required>
+            </div>
+            <div class="form-group">
+                <input type="password" name="password" class="form-control" placeholder="Password" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block ag-float">Login</button>
+        </form>
+        <p style="margin-top: 20px; color: var(--text-secondary);">Don't have an account? <a href="/signup" style="color: var(--secondary-color);">Sign up</a></p>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="text-error" style="margin-top: 20px;">{{ error }}</div>
+    {% endif %}
+</div>
+{% endblock %}

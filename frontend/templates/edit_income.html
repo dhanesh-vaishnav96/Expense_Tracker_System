@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Expense Tracker - Edit Credit{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <h1 style="color: var(--secondary-color);">Edit Credit</h1>
+    <div class="page-header-actions">
+        <a href="/entries" class="btn btn-secondary">Back to Entries</a>
+    </div>
+</header>
+
+<div class="ag-card ag-hover edit-card" style="max-width: 600px; margin: 0 auto; border-top: 4px solid var(--secondary-color);">
+    <h2 style="margin-bottom: 20px;">Update Credit Details</h2>
+    <form action="/api/incomes-edit-form/{{ income.id }}" method="POST" style="display: grid; gap: 15px;">
+        <div>
+            <label style="color: var(--text-secondary); display: block; margin-bottom: 5px;">Amount</label>
+            <input type="number" name="amount" class="form-control" value="{{ income.amount }}" required step="0.01">
+        </div>
+        <div>
+            <label style="color: var(--text-secondary); display: block; margin-bottom: 5px;">Category</label>
+            <select name="category_id" class="form-control" required>
+                <option value="" disabled {% if not income.category_id %}selected{% endif %}>Select Category</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if cat.id == income.category_id %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="color: var(--text-secondary); display: block; margin-bottom: 5px;">Date</label>
+            <input type="date" name="date" class="form-control" value="{{ income.date.strftime('%Y-%m-%d') }}" required>
+        </div>
+        <div>
+            <label style="color: var(--text-secondary); display: block; margin-bottom: 5px;">Note</label>
+            <input type="text" name="note" class="form-control" value="{{ income.note or '' }}">
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Save Changes</button>
+    </form>
+</div>
+{% endblock %}

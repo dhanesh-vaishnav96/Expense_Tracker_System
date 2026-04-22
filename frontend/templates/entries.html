@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+
+{% block title %}Expense Tracker - Entries{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <h1 style="color: var(--primary-color);">Manage Entries</h1>
+    <div class="page-header-actions">
+        <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+        <a href="/api/logout" class="btn btn-secondary">Logout</a>
+    </div>
+</header>
+
+<!-- Vertical layout -->
+<div class="entries-form-grid">
+    
+    <!-- Expense Section -->
+    <div style="border-top: 4px solid var(--error-color); border-radius: 8px;">
+        <div class="ag-card" style="height: 100%;">
+            <h2 style="margin-bottom: 20px; color: var(--error-color);">Add Expense Entry</h2>
+            <form action="/api/expenses-form" method="POST" style="display: flex; flex-direction: column; gap: 15px;">
+                <input type="number" name="amount" class="form-control" placeholder="Amount (₹)" required step="0.01">
+                
+                <div>
+                    <label style="margin-bottom: 5px; display: block; color: var(--text-secondary); font-size: 14px;">Category</label>
+                    <input type="hidden" name="category_id" class="cat-picker-value" required>
+                    <div class="cat-picker" data-form="expense">
+                        <div class="cat-picker-trigger" onclick="togglePicker(this)">
+                            <span class="cat-picker-label placeholder">Select Category</span>
+                            <span class="cat-picker-arrow">▼</span>
+                        </div>
+                        <div class="cat-picker-dropdown">
+                            <div class="cat-picker-list"></div>
+                            <div class="cat-picker-error"></div>
+                            <div class="cat-picker-add">
+                                <input type="text" placeholder="New category..." onkeydown="if(event.key==='Enter'){event.preventDefault();addCategory(this)}">
+                                <button type="button" onclick="addCategory(this.previousElementSibling)">+ Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="date" name="date" class="form-control" required>
+                <input type="text" name="note" class="form-control" placeholder="Notes (optional)">
+                <input type="hidden" name="source" value="entries">
+                <button type="submit" class="btn btn-primary" style="background-color: var(--error-color);">Add Expense</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Credit (Income) Section -->
+    <div style="border-top: 4px solid var(--secondary-color); border-radius: 8px;">
+        <div class="ag-card" style="height: 100%;">
+            <h2 style="margin-bottom: 20px; color: var(--secondary-color);">Add Credit Entry</h2>
+            <form action="/api/incomes-form" method="POST" style="display: flex; flex-direction: column; gap: 15px;">
+                <input type="number" name="amount" class="form-control" placeholder="Amount (₹)" required step="0.01">
+                
+                <div>
+                    <label style="margin-bottom: 5px; display: block; color: var(--text-secondary); font-size: 14px;">Category</label>
+                    <input type="hidden" name="category_id" class="cat-picker-value" required>
+                    <div class="cat-picker" data-form="income">
+                        <div class="cat-picker-trigger" onclick="togglePicker(this)">
+                            <span class="cat-picker-label placeholder">Select Category</span>
+                            <span class="cat-picker-arrow">▼</span>
+                        </div>
+                        <div class="cat-picker-dropdown">
+                            <div class="cat-picker-list"></div>
+                            <div class="cat-picker-error"></div>
+                            <div class="cat-picker-add">
+                                <input type="text" placeholder="New category..." onkeydown="if(event.key==='Enter'){event.preventDefault();addCategory(this)}">
+                                <button type="button" onclick="addCategory(this.previousElementSibling)">+ Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="date" name="date" class="form-control" required>
+                <input type="text" name="note" class="form-control" placeholder="Note (e.g. Salary, Family)">
+                <input type="hidden" name="source" value="entries">
+                <button type="submit" class="btn btn-primary" style="background-color: var(--secondary-color);">Add Credit</button>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<!-- Transaction History -->
+<div class="ag-card" style="margin-bottom: 30px;">
+    <div class="history-header">
+        <h3 style="color: var(--text-primary); margin: 0;">Transaction History</h3>
+        <form action="/entries" method="GET">
+            <select name="month" class="form-control" style="width: auto;" onchange="this.form.submit()">
+                {% for m in range(1, 13) %}
+                <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
+                    {{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m-1] }}
+                </option>
+                {% endfor %}
+            </select>
+            <select name="year" class="form-control" style="width: auto;" onchange="this.form.submit()">
+                {% for y in range(2026, 2051) %}
+                <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Note</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in history %}
+                <tr>
+                    <td>{{ entry.date.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        {% if entry.type == 'income' %}
+                        <span style="color: var(--secondary-color); font-weight: bold;">Credit</span>
+                        {% else %}
+                        <span style="color: var(--error-color); font-weight: bold;">Expense</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ entry.category.name if entry.category else 'N/A' }}</td>
+                    <td style="color: {% if entry.type == 'income' %}var(--secondary-color){% else %}var(--error-color){% endif %}; font-weight: bold;">
+                        {% if entry.type == 'income' %}+{% else %}-{% endif %}₹ {{ "%.2f"|format(entry.amount) }}
+                    </td>
+                    <td>{{ entry.note or '' }}</td>
+                    <td>
+                        <div style="display: flex; gap: 10px;">
+                            <a href="/{% if entry.type == 'income' %}edit-income{% else %}edit-entry{% endif %}/{{ entry.id }}" style="color: #fff; text-decoration: none;">Edit</a>
+                            <form action="/api/{% if entry.type == 'income' %}incomes-delete{% else %}expenses-delete{% endif %}/{{ entry.id }}" method="POST" style="margin: 0;">
+                                <input type="hidden" name="source" value="entries">
+                                <button type="submit" style="background:none; border:none; color:var(--error-color); cursor:pointer;">Del</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not history %}
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 20px;">No transactions found for this period.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let dynamicCategories = {{ (categories_json|tojson)|safe }};
+    let selectedCategories = {}; // Track selection per picker
+
+    // ===== CLOSE ALL PICKERS WHEN CLICKING OUTSIDE =====
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.cat-picker')) {
+            document.querySelectorAll('.cat-picker-dropdown.open').forEach(d => d.classList.remove('open'));
+            document.querySelectorAll('.cat-picker-trigger.open').forEach(t => t.classList.remove('open'));
+        }
+    });
+
+    // ===== TOGGLE PICKER =====
+    function togglePicker(triggerEl) {
+        const picker = triggerEl.closest('.cat-picker');
+        const dropdown = picker.querySelector('.cat-picker-dropdown');
+        const isOpen = dropdown.classList.contains('open');
+        
+        // Close all others first
+        document.querySelectorAll('.cat-picker-dropdown.open').forEach(d => d.classList.remove('open'));
+        document.querySelectorAll('.cat-picker-trigger.open').forEach(t => t.classList.remove('open'));
+
+        if (!isOpen) {
+            dropdown.classList.add('open');
+            triggerEl.classList.add('open');
+            renderAllPickers();
+        }
+    }
+
+    // ===== RENDER ALL PICKERS =====
+    function renderAllPickers() {
+        document.querySelectorAll('.cat-picker').forEach(picker => {
+            const list = picker.querySelector('.cat-picker-list');
+            const formId = picker.dataset.form;
+            const currentSelectedId = selectedCategories[formId];
+            
+            list.innerHTML = '';
+
+            if (dynamicCategories.length === 0) {
+                list.innerHTML = '<div class="cat-picker-empty"><span>📂</span>No categories yet — add one below</div>';
+                return;
+            }
+
+            dynamicCategories.forEach(cat => {
+                const isSelected = cat.id == currentSelectedId;
+                const div = document.createElement('div');
+                div.className = 'cat-picker-item' + (isSelected ? ' selected' : '');
+
+                const checkHtml = isSelected ? '✓' : '';
+                
+                let actionsHtml = '';
+                if (cat.created_by_id !== null) {
+                    actionsHtml = `
+                        <div class="cat-picker-item-actions">
+                            <button type="button" class="cp-edit" onclick="event.stopPropagation();startEdit(${cat.id})" title="Edit">✎</button>
+                            <button type="button" class="cp-del" onclick="event.stopPropagation();deleteCategory(${cat.id})" title="Delete">✕</button>
+                        </div>
+                    `;
+                } else {
+                    actionsHtml = `<span class="cat-picker-item-badge">default</span>`;
+                }
+
+                div.innerHTML = `
+                    <span class="cat-picker-item-check">${checkHtml}</span>
+                    <span class="cat-picker-item-name">${cat.name}</span>
+                    ${actionsHtml}
+                `;
+                
+                div.addEventListener('click', () => selectCategory(formId, cat.id, cat.name));
+                list.appendChild(div);
+            });
+        });
+    }
+
+    // ===== SELECT CATEGORY =====
+    function selectCategory(formId, catId, catName) {
+        selectedCategories[formId] = catId;
+        
+        // Update the specific picker's trigger label and hidden input
+        const picker = document.querySelector(`.cat-picker[data-form="${formId}"]`);
+        const label = picker.querySelector('.cat-picker-label');
+        label.textContent = catName;
+        label.classList.remove('placeholder');
+        
+        // Update hidden input
+        const hiddenInput = picker.closest('div').querySelector('.cat-picker-value');
+        hiddenInput.value = catId;
+
+        // Close dropdown
+        picker.querySelector('.cat-picker-dropdown').classList.remove('open');
+        picker.querySelector('.cat-picker-trigger').classList.remove('open');
+
+        renderAllPickers();
+    }
+
+    // ===== ADD CATEGORY =====
+    async function addCategory(inputEl) {
+        const name = inputEl.value.trim();
+        const errEl = inputEl.closest('.cat-picker-dropdown').querySelector('.cat-picker-error');
+        errEl.style.display = 'none';
+
+        if (!name) return;
+
+        try {
+            const res = await fetch('/api/categories/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name })
+            });
+
+            if (res.ok) {
+                const newCat = await res.json();
+                dynamicCategories.push(newCat);
+                inputEl.value = '';
+                renderAllPickers();
+            } else {
+                const data = await res.json();
+                errEl.textContent = data.detail || 'Failed to add';
+                errEl.style.display = 'block';
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    // ===== DELETE CATEGORY =====
+    async function deleteCategory(id) {
+        if (!confirm('Delete this category?')) return;
+        
+        try {
+            const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                dynamicCategories = dynamicCategories.filter(c => c.id !== id);
+                // Clear selection if deleted
+                Object.keys(selectedCategories).forEach(k => {
+                    if (selectedCategories[k] == id) {
+                        delete selectedCategories[k];
+                        const picker = document.querySelector(`.cat-picker[data-form="${k}"]`);
+                        const label = picker.querySelector('.cat-picker-label');
+                        label.textContent = 'Select Category';
+                        label.classList.add('placeholder');
+                        picker.closest('div').querySelector('.cat-picker-value').value = '';
+                    }
+                });
+                renderAllPickers();
+            } else {
+                const data = await res.json();
+                alert(data.detail || 'Cannot delete (in use by transactions)');
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    // ===== EDIT CATEGORY =====
+    function startEdit(id) {
+        const cat = dynamicCategories.find(c => c.id === id);
+        if (!cat) return;
+
+        // Replace the item with an edit row in all pickers
+        document.querySelectorAll('.cat-picker-list').forEach(list => {
+            const items = list.querySelectorAll('.cat-picker-item');
+            items.forEach(item => {
+                // Find the item for this category
+                const nameEl = item.querySelector('.cat-picker-item-name');
+                if (nameEl && nameEl.textContent === cat.name) {
+                    const editRow = document.createElement('div');
+                    editRow.className = 'cat-picker-edit-row';
+                    editRow.innerHTML = `
+                        <input type="text" value="${cat.name}" onkeydown="if(event.key==='Enter'){event.preventDefault();saveEdit(${cat.id},this.value)}">
+                        <button type="button" class="cp-save" onclick="saveEdit(${cat.id},this.previousElementSibling.value)">Save</button>
+                        <button type="button" class="cp-cancel" onclick="renderAllPickers()">Cancel</button>
+                    `;
+                    item.replaceWith(editRow);
+                    editRow.querySelector('input').focus();
+                    editRow.querySelector('input').select();
+                }
+            });
+        });
+    }
+
+    async function saveEdit(id, newName) {
+        newName = newName.trim();
+        if (!newName) return;
+
+        try {
+            const res = await fetch(`/api/categories/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName })
+            });
+
+            if (res.ok) {
+                const updatedCat = await res.json();
+                const index = dynamicCategories.findIndex(c => c.id === id);
+                if (index !== -1) dynamicCategories[index] = updatedCat;
+                
+                // Update trigger labels if this was selected
+                Object.keys(selectedCategories).forEach(k => {
+                    if (selectedCategories[k] == id) {
+                        const picker = document.querySelector(`.cat-picker[data-form="${k}"]`);
+                        picker.querySelector('.cat-picker-label').textContent = updatedCat.name;
+                    }
+                });
+                renderAllPickers();
+            } else {
+                const data = await res.json();
+                alert(data.detail || 'Failed to update');
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    // Initial render
+    renderAllPickers();
+</script>
+{% endblock %}
