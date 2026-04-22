@@ -45,11 +45,11 @@ def get_dashboard_data(db: Session, current_user: models.User, month: int = None
 
     # Monthly (Global Bar Graph)
     monthly_expenses_query = db.query(
-        func.strftime("%m", models.Expense.date).label("month"),
+        func.extract('month', models.Expense.date).label("month"),
         func.sum(models.Expense.amount).label("total")
     ).filter(
         models.Expense.user_id == current_user.id,
-        func.strftime("%Y", models.Expense.date) == str(year)
+        func.extract('year', models.Expense.date) == year
     ).group_by("month").order_by("month").all()
     
     monthly_expenses = [{"month": int(e.month), "amount": e.total} for e in monthly_expenses_query]
@@ -145,11 +145,11 @@ def get_monthly_summary(year: int = None, db: Session = Depends(get_db), current
     # SQLAlchemy func.extract('month', date) works across major dialects.
     
     expenses_query = db.query(
-        func.strftime("%m", models.Expense.date).label("month"),
+        func.extract('month', models.Expense.date).label("month"),
         func.sum(models.Expense.amount).label("total")
     ).filter(
         models.Expense.user_id == current_user.id,
-        func.strftime("%Y", models.Expense.date) == str(year)
+        func.extract('year', models.Expense.date) == year
     ).group_by("month").order_by("month").all()
 
     return [{"month": e.month, "amount": e.total} for e in expenses_query]
