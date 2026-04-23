@@ -23,7 +23,16 @@ import sys
 sys.path.insert(0, os.path.realpath(os.curdir))
 import backend.models.index
 target_metadata = backend.models.index.Base.metadata
-config.set_main_option("sqlalchemy.url", "sqlite:///./expense_tracker.db")
+
+# Use DATABASE_URL from environment if available (for Render/Postgres)
+db_url = os.getenv("DATABASE_URL")
+if db_url:
+    # Render provides postgres:// but SQLAlchemy needs postgresql://
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    config.set_main_option("sqlalchemy.url", db_url)
+else:
+    config.set_main_option("sqlalchemy.url", "sqlite:///./expense_tracker.db")
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
