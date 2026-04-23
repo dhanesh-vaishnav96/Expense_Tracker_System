@@ -18,7 +18,7 @@
     <div style="border-top: 4px solid var(--error-color); border-radius: 8px;">
         <div class="ag-card" style="height: 100%;">
             <h2 style="margin-bottom: 20px; color: var(--error-color);">Add Expense Entry</h2>
-            <form action="/api/expenses-form" method="POST" style="display: flex; flex-direction: column; gap: 15px;">
+            <form action="/api/expenses-form" method="POST" style="display: flex; flex-direction: column; gap: 15px;" onsubmit="return validateEntryForm(this)">
                 <input type="number" name="amount" class="form-control" placeholder="Amount (₹)" required step="0.01">
                 
                 <div>
@@ -52,7 +52,7 @@
     <div style="border-top: 4px solid var(--secondary-color); border-radius: 8px;">
         <div class="ag-card" style="height: 100%;">
             <h2 style="margin-bottom: 20px; color: var(--secondary-color);">Add Credit Entry</h2>
-            <form action="/api/incomes-form" method="POST" style="display: flex; flex-direction: column; gap: 15px;">
+            <form action="/api/incomes-form" method="POST" style="display: flex; flex-direction: column; gap: 15px;" onsubmit="return validateEntryForm(this)">
                 <input type="number" name="amount" class="form-control" placeholder="Amount (₹)" required step="0.01">
                 
                 <div>
@@ -156,6 +156,24 @@
 <script>
     let dynamicCategories = {{ (categories_json|tojson)|safe }};
     let selectedCategories = {}; // Track selection per picker
+
+    // ===== VALIDATE FORM =====
+    function validateEntryForm(form) {
+        const catInput = form.querySelector('.cat-picker-value');
+        if (!catInput.value) {
+            const errEl = form.querySelector('.cat-picker-error');
+            if (errEl) {
+                errEl.textContent = 'Please select a category before submitting.';
+                errEl.style.display = 'block';
+                form.querySelector('.cat-picker-dropdown').classList.add('open');
+                form.querySelector('.cat-picker-trigger').classList.add('open');
+            } else {
+                alert('Please select a category before submitting.');
+            }
+            return false;
+        }
+        return true;
+    }
 
     // ===== CLOSE ALL PICKERS WHEN CLICKING OUTSIDE =====
     document.addEventListener('click', function(e) {

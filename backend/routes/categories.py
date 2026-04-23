@@ -6,6 +6,7 @@ from backend.config.database import get_db
 import backend.models.index as models
 import backend.schemas.index as schemas
 from backend.services.auth import get_current_user
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(prefix="/categories", tags=["Categories"])
 
@@ -26,9 +27,13 @@ def create_category(category: schemas.CategoryCreate, db: Session = Depends(get_
     
     new_category = models.Category(name=category.name, created_by_id=current_user.id)
     db.add(new_category)
-    db.commit()
-    db.refresh(new_category)
-    return new_category
+    try:
+        db.commit()
+        db.refresh(new_category)
+        return new_category
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Category already exists")
 
 @router.put("/{category_id}", response_model=schemas.CategoryResponse)
 def update_category(category_id: int, category: schemas.CategoryCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
