@@ -20,6 +20,7 @@ class UserResponse(UserBase):
 # --- Category Schemas ---
 class CategoryBase(BaseModel):
     name: str
+    type: str = "expense"
 
 class CategoryCreate(CategoryBase):
     pass
@@ -28,6 +29,7 @@ class CategoryResponse(CategoryBase):
     id: int
     created_at: datetime
     created_by_id: Optional[int] = None
+    type: str = "expense"
 
     class Config:
         from_attributes = True

@@ -100,7 +100,14 @@
 <div class="dashboard-grid" style="margin-top: 30px; grid-template-columns: 1fr;">
     <!-- Monthly Comparison Visual (Bar Chart) - Full Width -->
     <div class="ag-card ag-hover">
-        <h3>Global Monthly Expenses ({{ selected_year }})</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0;">Global Monthly Expenses ({{ selected_year }})</h3>
+            <select class="form-control" style="width: auto; padding: 5px 10px;" onchange="window.location.href='/dashboard?month={{ selected_month }}&year=' + this.value">
+                {% for y in range(2026, 2051) %}
+                <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </div>
         <div class="chart-container">
             <canvas id="yearlyBarChart"></canvas>
         </div>

@@ -22,7 +22,9 @@
             <select name="category_id" class="form-control" required>
                 <option value="" disabled {% if not income.category_id %}selected{% endif %}>Select Category</option>
                 {% for cat in categories %}
+                {% if cat.type == 'income' %}
                 <option value="{{ cat.id }}" {% if cat.id == income.category_id %}selected{% endif %}>{{ cat.name }}</option>
+                {% endif %}
                 {% endfor %}
             </select>
         </div>

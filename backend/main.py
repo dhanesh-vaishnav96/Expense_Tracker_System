@@ -1,11 +1,19 @@
+import json
+import calendar
+from datetime import date
+
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
+
 from backend.config.database import engine, Base, get_db
 from backend.routes import auth, expenses, categories, dashboard
+from backend.routes.dashboard import get_dashboard_data
+from backend.services.auth import get_current_user
+from backend.models.index import Expense, Category, Income
 
 # Create tables if not using migrations
 Base.metadata.create_all(bind=engine)
@@ -16,7 +24,6 @@ app = FastAPI(title="Expense Tracker API", description="Antigravity Expense Trac
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 templates = Jinja2Templates(directory="frontend/templates")
 
-import json
 def to_json(value):
     return json.dumps(value)
 
@@ -37,9 +44,6 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(expenses.router, prefix="/api")
 app.include_router(categories.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
-
-from backend.routes.dashboard import get_dashboard_data
-from backend.services.auth import get_current_user, cookie_scheme
 
 @app.get("/")
 def read_root(request: Request, db: Session = Depends(get_db)):
@@ -73,8 +77,6 @@ def dashboard_page(request: Request, month: int = None, year: int = None, db: Se
         print(f"Dashboard error: {e}")
         return RedirectResponse(url="/login")
 
-from backend.models.index import Expense, Category, Income
-
 @app.get("/entries")
 def entries_page(request: Request, month: int = None, year: int = None, db: Session = Depends(get_db)):
     token = request.cookies.get("token")
@@ -83,9 +85,6 @@ def entries_page(request: Request, month: int = None, year: int = None, db: Sess
     
     try:
         current_user = get_current_user(token=token, db=db)
-        
-        from datetime import date
-        import calendar
         
         today = date.today()
         if not year:
@@ -125,7 +124,7 @@ def entries_page(request: Request, month: int = None, year: int = None, db: Sess
         categories = db.query(Category).filter(
             (Category.created_by_id == current_user.id) | (Category.created_by_id.is_(None))
         ).all()
-        categories_json = [{"id": c.id, "name": c.name, "created_by_id": c.created_by_id} for c in categories]
+        categories_json = [{"id": c.id, "name": c.name, "created_by_id": c.created_by_id, "type": c.type} for c in categories]
         
         return templates.TemplateResponse("entries.html", {
             "request": request, "user": current_user, "history": history, 

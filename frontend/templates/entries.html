@@ -209,12 +209,14 @@
             
             list.innerHTML = '';
 
-            if (dynamicCategories.length === 0) {
+            const filteredCategories = dynamicCategories.filter(c => c.type === formId);
+
+            if (filteredCategories.length === 0) {
                 list.innerHTML = '<div class="cat-picker-empty"><span>📂</span>No categories yet — add one below</div>';
                 return;
             }
 
-            dynamicCategories.forEach(cat => {
+            filteredCategories.forEach(cat => {
                 const isSelected = cat.id == currentSelectedId;
                 const div = document.createElement('div');
                 div.className = 'cat-picker-item' + (isSelected ? ' selected' : '');
@@ -279,7 +281,9 @@
     // ===== ADD CATEGORY =====
     async function addCategory(inputEl) {
         const name = inputEl.value.trim();
-        const errEl = inputEl.closest('.cat-picker-dropdown').querySelector('.cat-picker-error');
+        const picker = inputEl.closest('.cat-picker');
+        const formId = picker.dataset.form;
+        const errEl = picker.querySelector('.cat-picker-error');
         errEl.style.display = 'none';
 
         if (!name) return;
@@ -288,7 +292,7 @@
             const res = await fetch('/api/categories/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name })
+                body: JSON.stringify({ name: name, type: formId })
             });
 
             if (res.ok) {

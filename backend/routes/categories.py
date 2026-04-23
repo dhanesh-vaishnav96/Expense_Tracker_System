@@ -24,12 +24,13 @@ def create_category(category: schemas.CategoryCreate, db: Session = Depends(get_
     # Check if category already exists for this user or as a system default
     db_category = db.query(models.Category).filter(
         func.lower(models.Category.name) == func.lower(category.name.strip()),
+        models.Category.type == category.type,
         (models.Category.created_by_id == current_user.id) | (models.Category.created_by_id.is_(None))
     ).first()
     if db_category:
         raise HTTPException(status_code=400, detail="Category already exists in your list")
     
-    new_category = models.Category(name=category.name.strip(), created_by_id=current_user.id)
+    new_category = models.Category(name=category.name.strip(), type=category.type, created_by_id=current_user.id)
     db.add(new_category)
     try:
         db.commit()
