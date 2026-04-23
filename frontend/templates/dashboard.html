@@ -44,31 +44,6 @@
     </div>
 </header>
 
-<!-- Global Controls -->
-<div class="ag-card ag-hover" style="margin-bottom: 30px;">
-    <div class="dashboard-controls">
-        <form action="/dashboard" method="GET">
-            <label style="font-weight: bold;">Select Month:</label>
-            <select name="month" class="form-control" style="width: auto;" onchange="this.form.submit()">
-                {% for m in range(1, 13) %}
-                <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
-                    {{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m-1] }}
-                </option>
-                {% endfor %}
-            </select>
-            <select name="year" class="form-control" style="width: auto;" onchange="this.form.submit()">
-                {% for y in range(2026, 2051) %}
-                <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
-                {% endfor %}
-            </select>
-        </form>
-        
-        <h2 style="color: var(--primary-color); margin: 0;">
-            {{ ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][selected_month-1] }} {{ selected_year }}
-        </h2>
-    </div>
-</div>
-
 <!-- Metrics Grids -->
 <div class="dashboard-grid">
     <div class="ag-card ag-hover ag-float">
@@ -80,12 +55,31 @@
         <h2 style="font-size: 32px; color: var(--error-color); margin-top: 10px;">₹ {{ "%.2f"|format(total_expense) }}</h2>
     </div>
     <div class="ag-card ag-hover ag-float" style="animation-delay: 0.4s;">
-        <h3 style="color: var(--text-secondary);">This Month Expense</h3>
+        <h3 style="color: var(--text-secondary);">Expense ({{ ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][selected_month-1] }} {{ selected_year }})</h3>
         <h2 style="font-size: 32px; color: #ff9800; margin-top: 10px;">₹ {{ "%.2f"|format(this_month_expense) }}</h2>
     </div>
 </div>
 
-<div class="dashboard-grid" style="margin-top: 30px;">
+<div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px; margin-bottom: 20px;">
+    <h2 style="color: var(--primary-color); margin: 0;">Monthly Analysis</h2>
+    <form action="/dashboard" method="GET" style="display: flex; gap: 10px; align-items: center;">
+        <label style="font-weight: bold; color: var(--text-secondary);">Filter:</label>
+        <select name="month" class="form-control" style="width: auto; padding: 5px 10px;" onchange="this.form.submit()">
+            {% for m in range(1, 13) %}
+            <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
+                {{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m-1] }}
+            </option>
+            {% endfor %}
+        </select>
+        <select name="year" class="form-control" style="width: auto; padding: 5px 10px;" onchange="this.form.submit()">
+            {% for y in range(2026, 2051) %}
+            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<div class="dashboard-grid">
     <!-- Daily Trend Visual (Line Chart) -->
     <div class="ag-card ag-hover">
         <h3>Daily Expense ({{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][selected_month-1] }})</h3>

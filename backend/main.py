@@ -123,8 +123,7 @@ def entries_page(request: Request, month: int = None, year: int = None, db: Sess
             
         history.sort(key=lambda x: x['date'], reverse=True)
         categories = db.query(Category).filter(
-            (Category.created_by_id == current_user.id) | 
-            (Category.created_by_id.is_(None))
+            (Category.created_by_id == current_user.id) | (Category.created_by_id.is_(None))
         ).all()
         categories_json = [{"id": c.id, "name": c.name, "created_by_id": c.created_by_id} for c in categories]
         
@@ -149,7 +148,9 @@ def edit_entry_page(expense_id: int, request: Request, db: Session = Depends(get
         if not expense:
             return RedirectResponse(url="/entries")
         
-        categories = db.query(Category).all()
+        categories = db.query(Category).filter(
+            (Category.created_by_id == current_user.id) | (Category.created_by_id.is_(None))
+        ).all()
         return templates.TemplateResponse("edit_entry.html", {"request": request, "user": current_user, "expense": expense, "categories": categories})
     except Exception as e:
         print(f"Edit Entry error: {e}")
@@ -167,7 +168,9 @@ def edit_income_page(income_id: int, request: Request, db: Session = Depends(get
         if not income:
             return RedirectResponse(url="/entries")
         
-        categories = db.query(Category).all()
+        categories = db.query(Category).filter(
+            (Category.created_by_id == current_user.id) | (Category.created_by_id.is_(None))
+        ).all()
         return templates.TemplateResponse("edit_income.html", {"request": request, "user": current_user, "income": income, "categories": categories})
     except Exception as e:
         print(f"Edit Income error: {e}")

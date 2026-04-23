@@ -222,7 +222,9 @@
                 const checkHtml = isSelected ? '✓' : '';
                 
                 let actionsHtml = '';
-                if (cat.created_by_id !== null) {
+                if (cat.created_by_id === null) {
+                    actionsHtml = `<span class="cat-picker-item-badge">default</span>`;
+                } else if (cat.created_by_id == {{ user.id }}) {
                     actionsHtml = `
                         <div class="cat-picker-item-actions">
                             <button type="button" class="cp-edit" onclick="event.stopPropagation();startEdit(${cat.id})" title="Edit">✎</button>
@@ -230,7 +232,7 @@
                         </div>
                     `;
                 } else {
-                    actionsHtml = `<span class="cat-picker-item-badge">default</span>`;
+                    actionsHtml = `<span class="cat-picker-item-badge" style="background: #555;">shared</span>`;
                 }
 
                 div.innerHTML = `
@@ -256,8 +258,16 @@
         label.classList.remove('placeholder');
         
         // Update hidden input
-        const hiddenInput = picker.closest('div').querySelector('.cat-picker-value');
-        hiddenInput.value = catId;
+        const hiddenInput = picker.parentElement.querySelector('.cat-picker-value');
+        if (hiddenInput) {
+            hiddenInput.value = catId;
+        }
+
+        // Clear any previous error message
+        const errEl = picker.querySelector('.cat-picker-error');
+        if (errEl) {
+            errEl.style.display = 'none';
+        }
 
         // Close dropdown
         picker.querySelector('.cat-picker-dropdown').classList.remove('open');

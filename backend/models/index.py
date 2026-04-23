@@ -20,7 +20,7 @@ class Category(Base):
     __tablename__ = "categories"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True)
+    name = Column(String, index=True)
     created_by_id = Column(Integer, ForeignKey("users.id"))
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 

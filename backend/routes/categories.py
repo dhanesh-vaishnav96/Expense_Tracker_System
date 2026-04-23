@@ -7,25 +7,29 @@ import backend.models.index as models
 import backend.schemas.index as schemas
 from backend.services.auth import get_current_user
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
 
 router = APIRouter(prefix="/categories", tags=["Categories"])
 
 @router.get("/", response_model=List[schemas.CategoryResponse])
 def get_categories(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    # Anyone authenticated can view categories
+    # Return categories created by this user or system defaults
     categories = db.query(models.Category).filter(
-        (models.Category.created_by_id == current_user.id) | 
-        (models.Category.created_by_id.is_(None))
+        (models.Category.created_by_id == current_user.id) | (models.Category.created_by_id.is_(None))
     ).all()
     return categories
 
 @router.post("/", response_model=schemas.CategoryResponse, status_code=status.HTTP_201_CREATED)
 def create_category(category: schemas.CategoryCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    db_category = db.query(models.Category).filter(models.Category.name == category.name).first()
+    # Check if category already exists for this user or as a system default
+    db_category = db.query(models.Category).filter(
+        func.lower(models.Category.name) == func.lower(category.name.strip()),
+        (models.Category.created_by_id == current_user.id) | (models.Category.created_by_id.is_(None))
+    ).first()
     if db_category:
-        raise HTTPException(status_code=400, detail="Category already exists")
+        raise HTTPException(status_code=400, detail="Category already exists in your list")
     
-    new_category = models.Category(name=category.name, created_by_id=current_user.id)
+    new_category = models.Category(name=category.name.strip(), created_by_id=current_user.id)
     db.add(new_category)
     try:
         db.commit()
@@ -33,6 +37,7 @@ def create_category(category: schemas.CategoryCreate, db: Session = Depends(get_
         return new_category
     except IntegrityError:
         db.rollback()
+        # This might still happen if there's another constraint we missed, but we've dropped the unique index
         raise HTTPException(status_code=400, detail="Category already exists")
 
 @router.put("/{category_id}", response_model=schemas.CategoryResponse)
