@@ -1,8 +1,13 @@
 import json
 import calendar
 from datetime import date
+import os
+from dotenv import load_dotenv
 
-from fastapi import FastAPI, Request, Depends
+# Load environment variables
+load_dotenv()
+
+from fastapi import FastAPI, Request, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -67,24 +72,32 @@ def signup_page(request: Request):
 def dashboard_page(request: Request, month: int = None, year: int = None, db: Session = Depends(get_db)):
     token = request.cookies.get("token")
     if not token:
+        print("Dashboard access denied: No token cookie found")
         return RedirectResponse(url="/login")
     
     try:
         current_user = get_current_user(token=token, db=db)
+        print(f"Dashboard access granted for user: {current_user.email}")
         data = get_dashboard_data(db, current_user, month, year)
         return templates.TemplateResponse("dashboard.html", {"request": request, **data})
     except Exception as e:
-        print(f"Dashboard error: {e}")
-        return RedirectResponse(url="/login")
+        print(f"Dashboard error for user: {e}")
+        # If it's an auth error, redirect to login
+        if "credentials" in str(e).lower() or "not authenticated" in str(e).lower():
+            return RedirectResponse(url="/login?error=Session+expired", status_code=status.HTTP_303_SEE_OTHER)
+        # Otherwise, it might be a DB error, but we still need to handle it
+        return templates.TemplateResponse("index.html", {"request": request, "error": f"An error occurred: {str(e)}"})
 
 @app.get("/entries")
 def entries_page(request: Request, month: int = None, year: int = None, db: Session = Depends(get_db)):
     token = request.cookies.get("token")
     if not token:
+        print("Entries access denied: No token cookie found")
         return RedirectResponse(url="/login")
     
     try:
         current_user = get_current_user(token=token, db=db)
+        print(f"Entries access granted for user: {current_user.email}")
         
         today = date.today()
         if not year:
@@ -132,8 +145,10 @@ def entries_page(request: Request, month: int = None, year: int = None, db: Sess
             "selected_month": month, "selected_year": year
         })
     except Exception as e:
-        print(f"Entries error: {e}")
-        return RedirectResponse(url="/login")
+        print(f"Entries error for user: {e}")
+        if "credentials" in str(e).lower() or "not authenticated" in str(e).lower():
+            return RedirectResponse(url="/login?error=Session+expired", status_code=status.HTTP_303_SEE_OTHER)
+        return templates.TemplateResponse("index.html", {"request": request, "error": f"An error occurred: {str(e)}"})
 
 @app.get("/edit-entry/{expense_id}")
 def edit_entry_page(expense_id: int, request: Request, db: Session = Depends(get_db)):
@@ -153,6 +168,8 @@ def edit_entry_page(expense_id: int, request: Request, db: Session = Depends(get
         return templates.TemplateResponse("edit_entry.html", {"request": request, "user": current_user, "expense": expense, "categories": categories})
     except Exception as e:
         print(f"Edit Entry error: {e}")
+        if "credentials" in str(e).lower() or "not authenticated" in str(e).lower():
+            return RedirectResponse(url="/login?error=Session+expired", status_code=status.HTTP_303_SEE_OTHER)
         return RedirectResponse(url="/login")
 
 @app.get("/edit-income/{income_id}")
@@ -173,4 +190,6 @@ def edit_income_page(income_id: int, request: Request, db: Session = Depends(get
         return templates.TemplateResponse("edit_income.html", {"request": request, "user": current_user, "income": income, "categories": categories})
     except Exception as e:
         print(f"Edit Income error: {e}")
+        if "credentials" in str(e).lower() or "not authenticated" in str(e).lower():
+            return RedirectResponse(url="/login?error=Session+expired", status_code=status.HTTP_303_SEE_OTHER)
         return RedirectResponse(url="/login")

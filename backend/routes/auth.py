@@ -41,18 +41,29 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 @router.post("/login-form")
 def login_form(response: Response, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
+    print(f"Login attempt for: {username}")
     user = db.query(models.User).filter(models.User.email == username).first()
     if not user or not auth_service.verify_password(password, user.password):
-        # In a real app, redirect back with error in query param or flash message
+        print(f"Login failed for: {username}")
         return RedirectResponse(url="/login?error=Invalid+credentials", status_code=status.HTTP_303_SEE_OTHER)
     
+    print(f"Login successful for: {username}")
     access_token_expires = timedelta(minutes=auth_service.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth_service.create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
     
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
-    response.set_cookie(key="token", value=access_token, httponly=True, path="/", max_age=auth_service.ACCESS_TOKEN_EXPIRE_MINUTES * 60)
+    response.set_cookie(
+        key="token", 
+        value=access_token, 
+        httponly=True, 
+        path="/", 
+        max_age=auth_service.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        samesite="lax",
+        secure=False  # Set to True in production with HTTPS
+    )
+    print(f"Cookie set for: {username}, redirecting to /dashboard")
     return response
 
 @router.post("/register-form")

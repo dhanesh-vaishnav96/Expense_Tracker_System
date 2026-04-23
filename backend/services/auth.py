@@ -42,7 +42,13 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 # Get Current User
 def get_current_user(token: str = Depends(cookie_scheme), bearer_token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # Prefer cookie token for SSR
-    final_token = token or bearer_token
+    # When called as a function, Depends objects are the default values
+    final_token = None
+    
+    if isinstance(token, str) and token:
+        final_token = token
+    elif isinstance(bearer_token, str) and bearer_token:
+        final_token = bearer_token
     
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -51,12 +57,12 @@ def get_current_user(token: str = Depends(cookie_scheme), bearer_token: str = De
     )
     
     if not final_token:
-        # For SSR, we might want to redirect instead of raising 401
-        # But for now, we'll let the route handle redirects if needed
         raise credentials_exception
 
     try:
-        payload = jwt.decode(final_token, SECRET_KEY, algorithms=[ALGORITHM])
+        # Re-read SECRET_KEY to ensure it's updated from env if load_dotenv was called
+        current_secret_key = os.getenv("SECRET_KEY", SECRET_KEY)
+        payload = jwt.decode(final_token, current_secret_key, algorithms=[ALGORITHM])
 
         email: str = payload.get("sub")
         if email is None:

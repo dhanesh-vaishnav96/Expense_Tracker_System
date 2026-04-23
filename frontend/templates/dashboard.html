@@ -38,7 +38,7 @@
 <header class="page-header">
     <h1 style="color: var(--primary-color);">Dashboard</h1>
     <div class="page-header-actions">
-        <span style="font-weight: 600;">Welcome, {{ user.name }}!</span>
+        <span>Welcome, {{ user.name }}!</span>
         <a href="/entries" class="btn btn-primary">Go to Entries</a>
         <a href="/api/logout" class="btn btn-secondary">Logout</a>
     </div>
@@ -48,22 +48,22 @@
 <div class="dashboard-grid">
     <div class="ag-card ag-hover ag-float">
         <h3 style="color: var(--text-secondary);">Total Balance (Global)</h3>
-        <h2 style="font-size: 32px; color: {% if total_balance >= 0 %}var(--secondary-color){% else %}var(--error-color){% endif %}; margin-top: 10px;">₹ {{ "%.2f"|format(total_balance) }}</h2>
+        <h2 style="color: {% if total_balance >= 0 %}var(--secondary-color){% else %}var(--error-color){% endif %}; margin-top: 10px;">₹ {{ "%.2f"|format(total_balance) }}</h2>
     </div>
     <div class="ag-card ag-hover ag-float" style="animation-delay: 0.2s;">
         <h3 style="color: var(--text-secondary);">Total Expense (Global)</h3>
-        <h2 style="font-size: 32px; color: var(--error-color); margin-top: 10px;">₹ {{ "%.2f"|format(total_expense) }}</h2>
+        <h2 style="color: var(--error-color); margin-top: 10px;">₹ {{ "%.2f"|format(total_expense) }}</h2>
     </div>
     <div class="ag-card ag-hover ag-float" style="animation-delay: 0.4s;">
         <h3 style="color: var(--text-secondary);">Expense ({{ ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][selected_month-1] }} {{ selected_year }})</h3>
-        <h2 style="font-size: 32px; color: #ff9800; margin-top: 10px;">₹ {{ "%.2f"|format(this_month_expense) }}</h2>
+        <h2 style="color: #ff9800; margin-top: 10px;">₹ {{ "%.2f"|format(this_month_expense) }}</h2>
     </div>
 </div>
 
-<div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px; margin-bottom: 20px;">
+<!-- Monthly Analysis Header & Filters -->
+<div class="history-header" style="margin-top: 40px; margin-bottom: 20px;">
     <h2 style="color: var(--primary-color); margin: 0;">Monthly Analysis</h2>
-    <form action="/dashboard" method="GET" style="display: flex; gap: 10px; align-items: center;">
-        <label style="font-weight: bold; color: var(--text-secondary);">Filter:</label>
+    <form action="/dashboard" method="GET">
         <select name="month" class="form-control" style="width: auto; padding: 5px 10px;" onchange="this.form.submit()">
             {% for m in range(1, 13) %}
             <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
@@ -81,8 +81,8 @@
 
 <div class="dashboard-grid">
     <!-- Daily Trend Visual (Line Chart) -->
-    <div class="ag-card ag-hover">
-        <h3>Daily Expense ({{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][selected_month-1] }})</h3>
+    <div class="ag-card">
+        <h3 style="font-size: 16px;">Daily Expense ({{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][selected_month-1] }})</h3>
         <div class="chart-container">
             <canvas id="dailyLineChart"></canvas>
         </div>
@@ -122,102 +122,16 @@
     Chart.defaults.color = '#fff';
     Chart.defaults.scale.grid.color = 'rgba(255, 255, 255, 0.1)';
     
-    // Parse the injected data
-    const dailyDataRaw = {{ daily_expenses | tojson | safe }};
-    const catDataRaw = {{ cat_distribution | tojson | safe }};
-    const monthlyDataRaw = {{ monthly_expenses | tojson | safe }};
-    
-    // Process Daily Data for Line Chart
-    const dailyLabels = dailyDataRaw.map(d => {
-        let sd = new Date(d.date);
-        return sd.getDate() + " " + sd.toLocaleString('default', { month: 'short' });
-    });
-    const dailyAmounts = dailyDataRaw.map(d => d.amount);
-
+    // Initialize Daily Line Chart with Python-generated configuration
     const ctxLine = document.getElementById('dailyLineChart').getContext('2d');
-    new Chart(ctxLine, {
-        type: 'line',
-        data: {
-            labels: dailyLabels,
-            datasets: [{
-                label: 'Expense Amount (₹)',
-                data: dailyAmounts,
-                borderColor: '#00d2ff',
-                backgroundColor: 'rgba(0, 210, 255, 0.2)',
-                borderWidth: 2,
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            }
-        }
-    });
+    new Chart(ctxLine, {{ daily_chart_config | tojson | safe }});
 
-    // Process Category Data for Bar Chart
-    const catLabels = catDataRaw.map(d => d.name);
-    const catAmounts = catDataRaw.map(d => d.amount);
-    
-    // Generate distinct colors for categories
-    const backgroundColors = [
-        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', 
-        '#FF9F40', '#00d2ff', '#3a7bd5', '#8A2BE2', '#00FA9A'
-    ];
-
+    // Initialize Category Bar Chart with Python-generated configuration
     const ctxCat = document.getElementById('categoryBarChart').getContext('2d');
-    new Chart(ctxCat, {
-        type: 'bar',
-        data: {
-            labels: catLabels,
-            datasets: [{
-                label: 'Total Expense (₹)',
-                data: catAmounts,
-                backgroundColor: backgroundColors.slice(0, catLabels.length),
-                borderRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            }
-        }
-    });
+    new Chart(ctxCat, {{ cat_chart_config | tojson | safe }});
 
-    // Process Monthly Data for Yearly Bar Chart
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    // Initialize array with 12 months set to 0
-    let monthlyAmounts = new Array(12).fill(0);
-    monthlyDataRaw.forEach(d => {
-        // SQLite "%m" returns string like "04", so we parseInt
-        let idx = parseInt(d.month) - 1;
-        monthlyAmounts[idx] = d.amount;
-    });
-
+    // Initialize Monthly Comparison Bar Chart with Python-generated configuration
     const ctxYearly = document.getElementById('yearlyBarChart').getContext('2d');
-    new Chart(ctxYearly, {
-        type: 'bar',
-        data: {
-            labels: monthNames,
-            datasets: [{
-                label: 'Total Expense (₹)',
-                data: monthlyAmounts,
-                backgroundColor: '#3a7bd5',
-                borderRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            }
-        }
-    });
+    new Chart(ctxYearly, {{ yearly_chart_config | tojson | safe }});
 </script>
 {% endblock %}

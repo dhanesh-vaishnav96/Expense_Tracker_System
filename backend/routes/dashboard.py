@@ -5,7 +5,7 @@ from sqlalchemy import func
 from backend.config.database import get_db
 import backend.models.index as models
 from backend.services.auth import get_current_user
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 import calendar
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -41,7 +41,40 @@ def get_dashboard_data(db: Session, current_user: models.User, month: int = None
         models.Expense.date <= end_date
     ).group_by(models.Expense.date).order_by(models.Expense.date).all()
     
-    daily_expenses = [{"date": str(e.date), "amount": e.total} for e in daily_expenses_query]
+    daily_labels = []
+    daily_amounts = []
+    for e in daily_expenses_query:
+        # Handle SQLite returning string for dates
+        dt = e.date
+        if isinstance(dt, str):
+            dt = datetime.strptime(dt, "%Y-%m-%d").date()
+        
+        label = f"{dt.day} {dt.strftime('%b')}"
+        daily_labels.append(label)
+        daily_amounts.append(float(e.total))
+        
+    daily_chart_config = {
+        "type": "line",
+        "data": {
+            "labels": daily_labels,
+            "datasets": [{
+                "label": 'Expense Amount (₹)',
+                "data": daily_amounts,
+                "borderColor": '#00d2ff',
+                "backgroundColor": 'rgba(0, 210, 255, 0.2)',
+                "borderWidth": 2,
+                "tension": 0.4,
+                "fill": True
+            }]
+        },
+        "options": {
+            "responsive": True,
+            "maintainAspectRatio": False,
+            "plugins": {
+                "legend": { "display": False }
+            }
+        }
+    }
 
     # Monthly (Global Bar Graph)
     monthly_expenses_query = db.query(
@@ -52,7 +85,31 @@ def get_dashboard_data(db: Session, current_user: models.User, month: int = None
         func.extract('year', models.Expense.date) == year
     ).group_by("month").order_by("month").all()
     
-    monthly_expenses = [{"month": int(e.month), "amount": e.total} for e in monthly_expenses_query]
+    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    monthly_amounts = [0.0] * 12
+    for e in monthly_expenses_query:
+        idx = int(e.month) - 1
+        monthly_amounts[idx] = float(e.total)
+        
+    yearly_chart_config = {
+        "type": 'bar',
+        "data": {
+            "labels": month_names,
+            "datasets": [{
+                "label": 'Total Expense (₹)',
+                "data": monthly_amounts,
+                "backgroundColor": '#3a7bd5',
+                "borderRadius": 4
+            }]
+        },
+        "options": {
+            "responsive": True,
+            "maintainAspectRatio": False,
+            "plugins": {
+                "legend": { "display": False }
+            }
+        }
+    }
 
     # Categories Breakdown
     cat_distribution = db.query(
@@ -64,7 +121,36 @@ def get_dashboard_data(db: Session, current_user: models.User, month: int = None
         models.Expense.date <= end_date
     ).group_by(models.Category.name).all()
 
-    cat_distribution_json = [{"name": c.name, "amount": c.total} for c in cat_distribution]
+    cat_labels = []
+    cat_amounts = []
+    for c in cat_distribution:
+        cat_labels.append(c.name)
+        cat_amounts.append(float(c.total))
+        
+    background_colors = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', 
+        '#FF9F40', '#00d2ff', '#3a7bd5', '#8A2BE2', '#00FA9A'
+    ]
+    
+    cat_chart_config = {
+        "type": 'bar',
+        "data": {
+            "labels": cat_labels,
+            "datasets": [{
+                "label": 'Total Expense (₹)',
+                "data": cat_amounts,
+                "backgroundColor": background_colors[:len(cat_labels)] if cat_labels else [],
+                "borderRadius": 4
+            }]
+        },
+        "options": {
+            "responsive": True,
+            "maintainAspectRatio": False,
+            "plugins": {
+                "legend": { "display": False }
+            }
+        }
+    }
 
     # Recent Expenses
     recent_expenses = db.query(models.Expense).filter(
@@ -82,9 +168,9 @@ def get_dashboard_data(db: Session, current_user: models.User, month: int = None
         "this_month_expense": this_month_expense,
         "total_balance": total_balance,
         "total_income": total_income_sum,
-        "daily_expenses": daily_expenses,
-        "monthly_expenses": monthly_expenses,
-        "cat_distribution": cat_distribution_json,
+        "daily_chart_config": daily_chart_config,
+        "yearly_chart_config": yearly_chart_config,
+        "cat_chart_config": cat_chart_config,
         "user": current_user,
         "selected_month": month,
         "selected_year": year
