@@ -7,88 +7,8 @@ import backend.models.index as models
 from backend.services.auth import get_current_user
 from datetime import date, timedelta, datetime
 import calendar
-import io
-import base64
-import matplotlib
-matplotlib.use("Agg")  # Non-interactive backend (no display needed)
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
-
-# ── Matplotlib helper: dark-themed chart → base64 PNG string ─────────────
-
-_BG  = "#1a1a2e"   # card / figure background
-_AX  = "#16213e"   # axes background
-_FG  = "#e0e0e0"   # text / spine colour
-_GRID = "rgba(255,255,255,0.08)"  # not used directly; see below
-
-
-def _fig_to_b64(fig) -> str:
-    """Render a matplotlib figure to a base64-encoded PNG string."""
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", bbox_inches="tight", dpi=110)
-    buf.seek(0)
-    encoded = base64.b64encode(buf.read()).decode("utf-8")
-    plt.close(fig)
-    return encoded
-
-
-def _apply_dark_style(fig, ax, title: str):
-    """Apply the app's dark theme to a figure/axes pair."""
-    fig.patch.set_facecolor(_BG)
-    ax.set_facecolor(_AX)
-    ax.set_title(title, color=_FG, fontsize=13, fontweight="bold", pad=12)
-    ax.tick_params(colors=_FG, labelsize=9)
-    for spine in ax.spines.values():
-        spine.set_edgecolor("#333355")
-    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"₹{v:,.0f}"))
-    ax.grid(axis="y", color="#333355", linewidth=0.7, linestyle="--")
-
-
-def _make_line_chart(labels: list, amounts: list, title: str, color: str = "#00e676") -> str:
-    """Return a base64 PNG of a dark-themed line chart for monthly income."""
-    fig, ax = plt.subplots(figsize=(8, 3.2))
-    _apply_dark_style(fig, ax, title)
-
-    if amounts:
-        x = range(len(labels))
-        ax.plot(x, amounts, color=color, linewidth=2.2, marker="o",
-                markersize=5, markerfacecolor=color, zorder=3)
-        ax.fill_between(x, amounts, alpha=0.18, color=color)
-        ax.set_xticks(list(x))
-        ax.set_xticklabels(labels, color=_FG, fontsize=8, rotation=45, ha="right")
-    else:
-        ax.text(0.5, 0.5, "No income data for this period",
-                ha="center", va="center", color="#888", transform=ax.transAxes, fontsize=11)
-        ax.set_xticks([])
-
-    ax.set_yticks(ax.get_yticks())
-    ax.set_yticklabels([f"₹{int(v):,}" for v in ax.get_yticks()], color=_FG, fontsize=8)
-    fig.tight_layout()
-    return _fig_to_b64(fig)
-
-
-def _make_bar_chart(labels: list, amounts: list, title: str, color: str = "#00e676") -> str:
-    """Return a base64 PNG of a dark-themed bar chart for yearly income."""
-    fig, ax = plt.subplots(figsize=(8, 3.2))
-    _apply_dark_style(fig, ax, title)
-
-    bars = ax.bar(labels, amounts, color=color, alpha=0.85, width=0.6,
-                  edgecolor="#111", linewidth=0.5)
-    # Highlight non-zero bars with a subtle gradient edge
-    for bar, val in zip(bars, amounts):
-        if val > 0:
-            bar.set_edgecolor(color)
-            bar.set_linewidth(1.2)
-
-    ax.set_xticks(range(len(labels)))
-    ax.set_xticklabels(labels, color=_FG, fontsize=9)
-    ax.set_yticks(ax.get_yticks())
-    ax.set_yticklabels([f"₹{int(v):,}" for v in ax.get_yticks()], color=_FG, fontsize=8)
-    fig.tight_layout()
-    return _fig_to_b64(fig)
-
 
 def get_dashboard_data(db: Session, current_user: models.User, month: int = None, year: int = None):
     today = date.today()
@@ -266,11 +186,29 @@ def get_dashboard_data(db: Session, current_user: models.User, month: int = None
         inc_daily_amounts.append(float(row.total))
 
     month_full_name = date(year, month, 1).strftime("%B")
-    monthly_income_chart = _make_line_chart(
-        inc_daily_labels, inc_daily_amounts,
-        title=f"Monthly Incomes ({month_full_name} {year})",
-        color="#00e676"
-    )
+    
+    monthly_income_chart_config = {
+        "type": "line",
+        "data": {
+            "labels": inc_daily_labels,
+            "datasets": [{
+                "label": 'Income Amount (₹)',
+                "data": inc_daily_amounts,
+                "borderColor": '#00e676',
+                "backgroundColor": 'rgba(0, 230, 118, 0.2)',
+                "borderWidth": 2,
+                "tension": 0.4,
+                "fill": True
+            }]
+        },
+        "options": {
+            "responsive": True,
+            "maintainAspectRatio": False,
+            "plugins": {
+                "legend": { "display": False }
+            }
+        }
+    }
 
     # ── Income: Yearly (monthly totals for selected year) ─────────────────
     yearly_income_query = db.query(
@@ -287,11 +225,25 @@ def get_dashboard_data(db: Session, current_user: models.User, month: int = None
     for row in yearly_income_query:
         inc_yearly_amounts[int(row.month) - 1] = float(row.total)
 
-    yearly_income_chart = _make_bar_chart(
-        month_names_short, inc_yearly_amounts,
-        title=f"Yearly Incomes ({year})",
-        color="#00e676"
-    )
+    yearly_income_chart_config = {
+        "type": 'bar',
+        "data": {
+            "labels": month_names_short,
+            "datasets": [{
+                "label": 'Total Income (₹)',
+                "data": inc_yearly_amounts,
+                "backgroundColor": '#00e676',
+                "borderRadius": 4
+            }]
+        },
+        "options": {
+            "responsive": True,
+            "maintainAspectRatio": False,
+            "plugins": {
+                "legend": { "display": False }
+            }
+        }
+    }
 
     return {
         "total_expense": total_expense,
@@ -301,8 +253,8 @@ def get_dashboard_data(db: Session, current_user: models.User, month: int = None
         "daily_chart_config": daily_chart_config,
         "yearly_chart_config": yearly_chart_config,
         "cat_chart_config": cat_chart_config,
-        "monthly_income_chart": monthly_income_chart,
-        "yearly_income_chart": yearly_income_chart,
+        "monthly_income_chart_config": monthly_income_chart_config,
+        "yearly_income_chart_config": yearly_income_chart_config,
         "user": current_user,
         "selected_month": month,
         "selected_year": year,
