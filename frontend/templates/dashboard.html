@@ -114,8 +114,66 @@
     </div>
 </div>
 
-<!-- Manage Categories -->
+<!-- ════════════════ INCOME CHARTS ════════════════ -->
+<div style="margin-top: 40px; margin-bottom: 16px;">
+    <h2 style="color: var(--primary-color); margin: 0; border-left: 4px solid #00e676; padding-left: 12px;">
+        Income Analysis
+    </h2>
+</div>
 
+<!-- Monthly Incomes (daily line chart - matplotlib) -->
+<div class="dashboard-grid" style="grid-template-columns: 1fr; margin-bottom: 30px;">
+    <div class="ag-card ag-hover">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+            <h3 style="margin: 0; color: #00e676;">
+                Monthly Incomes ({{ month_full_name }} {{ selected_year }})
+            </h3>
+            <form action="/dashboard" method="GET" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <select name="month" class="form-control" style="width: auto; padding: 5px 10px;" onchange="this.form.submit()">
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
+                        {{ ['January','February','March','April','May','June','July','August','September','October','November','December'][m-1] }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <select name="year" class="form-control" style="width: auto; padding: 5px 10px;" onchange="this.form.submit()">
+                    {% for y in range(2024, 2051) %}
+                    <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+        <div style="text-align: center; overflow-x: auto;">
+            <img src="data:image/png;base64,{{ monthly_income_chart }}"
+                 alt="Monthly Income Chart"
+                 style="max-width: 100%; height: auto; border-radius: 8px; display: block; margin: 0 auto;" />
+        </div>
+    </div>
+</div>
+
+<!-- Yearly Incomes (monthly bar chart - matplotlib) -->
+<div class="dashboard-grid" style="grid-template-columns: 1fr; margin-bottom: 40px;">
+    <div class="ag-card ag-hover">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+            <h3 style="margin: 0; color: #00e676;">
+                Yearly Incomes ({{ selected_year }})
+            </h3>
+            <select class="form-control" style="width: auto; padding: 5px 10px;"
+                    onchange="window.location.href='/dashboard?month={{ selected_month }}&year=' + this.value">
+                {% for y in range(2024, 2051) %}
+                <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="text-align: center; overflow-x: auto;">
+            <img src="data:image/png;base64,{{ yearly_income_chart }}"
+                 alt="Yearly Income Chart"
+                 style="max-width: 100%; height: auto; border-radius: 8px; display: block; margin: 0 auto;" />
+        </div>
+    </div>
+</div>
+
+<!-- Manage Categories -->
 
 <script>
     // Theme colors setup for Chart.js
