@@ -11,7 +11,7 @@
 }
 
 html {
-  font-size: 16px;
+  font-size: 18px; /* Increased from 16px for global zoom-in effect */
 }
 
 @media (max-width: 768px) {
@@ -37,7 +37,7 @@ body {
 
 .container {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1400px; /* Increased from 1200px to accommodate larger elements */
   padding: 20px;
   margin: 0 auto;
 }
@@ -49,25 +49,25 @@ body {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  padding: 30px;
+  padding: 40px; /* Increased from 30px */
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
   transition: transform var(--transition-speed) cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow var(--transition-speed) ease;
   position: relative;
 }
 
 .ag-card h2 {
-  font-size: 28px;
-  margin-bottom: 10px;
+  font-size: 36px; /* Increased from 28px */
+  margin-bottom: 15px;
   letter-spacing: -0.5px;
 }
 
 .ag-card h3 {
-  font-size: 14px;
+  font-size: 16px; /* Increased from 14px */
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 1px;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
 }
 
 /* Antigravity Hover Effect */
@@ -121,10 +121,10 @@ body {
 /* Buttons */
 .btn {
   display: inline-block;
-  padding: 12px 24px;
+  padding: 14px 30px; /* Increased padding */
   border: none;
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: 10px; /* Rounded more for premium look */
+  font-size: 18px; /* Increased font size */
   font-weight: 600;
   cursor: pointer;
   transition: transform var(--transition-speed) ease, opacity var(--transition-speed) ease;
@@ -162,7 +162,7 @@ body {
 }
 
 .page-header h1 {
-  font-size: 1.8rem;
+  font-size: 2.4rem; /* Increased from 1.8rem */
 }
 
 .page-header-actions {
@@ -191,15 +191,15 @@ body {
 /* Dashboard Grid */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 30px;
-  margin-top: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); /* Increased min-width for larger cards */
+  gap: 35px;
+  margin-top: 35px;
 }
 
 /* Chart Containers */
 .chart-container {
   position: relative;
-  height: 300px;
+  height: 380px; /* Increased from 300px for larger visualizations */
   width: 100%;
 }
 
