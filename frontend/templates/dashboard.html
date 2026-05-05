@@ -51,7 +51,7 @@
         <h2 style="color: {% if total_balance >= 0 %}var(--secondary-color){% else %}var(--error-color){% endif %}; margin-top: 10px;">₹ {{ "%.2f"|format(total_balance) }}</h2>
     </div>
     <div class="ag-card ag-hover ag-float" style="animation-delay: 0.2s;">
-        <h3 style="color: var(--text-secondary);">Total Expense (Global)</h3>
+        <h3 style="color: var(--text-secondary);">Total Expense ({{ selected_year }})</h3>
         <h2 style="color: var(--error-color); margin-top: 10px;">₹ {{ "%.2f"|format(total_expense) }}</h2>
     </div>
     <div class="ag-card ag-hover ag-float" style="animation-delay: 0.4s;">

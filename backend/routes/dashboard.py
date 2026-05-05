@@ -21,7 +21,10 @@ def get_dashboard_data(db: Session, current_user: models.User, month: int = None
     last_day = calendar.monthrange(year, month)[1]
     end_date = date(year, month, last_day)
     
-    total_expense = db.query(func.sum(models.Expense.amount)).filter(models.Expense.user_id == current_user.id).scalar() or 0.0
+    total_expense = db.query(func.sum(models.Expense.amount)).filter(
+        models.Expense.user_id == current_user.id,
+        func.extract('year', models.Expense.date) == year
+    ).scalar() or 0.0
     this_month_expense = db.query(func.sum(models.Expense.amount)).filter(
         models.Expense.user_id == current_user.id,
         models.Expense.date >= start_date,
