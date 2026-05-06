@@ -81,7 +81,7 @@ def dashboard_page(request: Request, month: int = None, year: int = None, db: Se
         data = get_dashboard_data(db, current_user, month, year)
         return templates.TemplateResponse("dashboard.html", {"request": request, **data})
     except Exception as e:
-        print(f"Dashboard error for user: {e}")
+        print(f"Dashboard error: {type(e).__name__}: {str(e)}")
         # If it's an auth error, redirect to login
         if "credentials" in str(e).lower() or "not authenticated" in str(e).lower():
             return RedirectResponse(url="/login?error=Session+expired", status_code=status.HTTP_303_SEE_OTHER)

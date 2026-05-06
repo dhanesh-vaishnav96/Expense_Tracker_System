@@ -4,6 +4,7 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, APIKeyCookie
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from backend.config.database import get_db
 import backend.models.index as models
 import backend.schemas.index as schemas
@@ -11,7 +12,10 @@ import os
 from starlette.responses import RedirectResponse
 
 # Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-that-should-be-in-env")
+def get_config_secret():
+    return os.getenv("SECRET_KEY", "your-super-secret-key-that-should-be-in-env")
+
+SECRET_KEY = get_config_secret()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # 24 hours
 
@@ -36,7 +40,9 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
         expire = datetime.utcnow() + timedelta(minutes=15)
     
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    # Re-read secret key to ensure it's current from env
+    current_secret = os.getenv("SECRET_KEY", SECRET_KEY)
+    encoded_jwt = jwt.encode(to_encode, current_secret, algorithm=ALGORITHM)
     return encoded_jwt
 
 # Get Current User
@@ -68,10 +74,13 @@ def get_current_user(token: str = Depends(cookie_scheme), bearer_token: str = De
         if email is None:
             raise credentials_exception
         token_data = schemas.TokenData(email=email)
-    except JWTError:
+    except JWTError as e:
+        print(f"JWT Validation Error: {e}")
         raise credentials_exception
     
-    user = db.query(models.User).filter(models.User.email == token_data.email).first()
+    email_clean = token_data.email.lower().strip()
+    user = db.query(models.User).filter(func.lower(models.User.email) == email_clean).first()
     if user is None:
+        print(f"User not found for token email: {email_clean}")
         raise credentials_exception
     return user

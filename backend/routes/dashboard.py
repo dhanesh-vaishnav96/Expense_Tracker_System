@@ -32,7 +32,13 @@ def get_dashboard_data(db: Session, current_user: models.User, month: int = None
     ).scalar() or 0.0
 
     total_income_sum = db.query(func.sum(models.Income.amount)).filter(models.Income.user_id == current_user.id).scalar() or 0.0
-    total_balance = total_income_sum - total_expense
+    
+    # Global Total Expense (All time) for Global Balance calculation
+    global_total_expense = db.query(func.sum(models.Expense.amount)).filter(
+        models.Expense.user_id == current_user.id
+    ).scalar() or 0.0
+    
+    total_balance = total_income_sum - global_total_expense
 
     # Daily (Selected Month)
     daily_expenses_query = db.query(
@@ -86,7 +92,7 @@ def get_dashboard_data(db: Session, current_user: models.User, month: int = None
     ).filter(
         models.Expense.user_id == current_user.id,
         func.extract('year', models.Expense.date) == year
-    ).group_by("month").order_by("month").all()
+    ).group_by(func.extract('month', models.Expense.date)).order_by("month").all()
     
     month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     monthly_amounts = [0.0] * 12
@@ -217,7 +223,7 @@ def get_dashboard_data(db: Session, current_user: models.User, month: int = None
     ).filter(
         models.Income.user_id == current_user.id,
         func.extract('year', models.Income.date) == year
-    ).group_by("month").order_by("month").all()
+    ).group_by(func.extract('month', models.Income.date)).order_by("month").all()
 
     month_names_short = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -321,7 +327,7 @@ def get_monthly_summary(year: int = None, db: Session = Depends(get_db), current
     ).filter(
         models.Expense.user_id == current_user.id,
         func.extract('year', models.Expense.date) == year
-    ).group_by("month").order_by("month").all()
+    ).group_by(func.extract('month', models.Expense.date)).order_by("month").all()
 
     return [{"month": e.month, "amount": e.total} for e in expenses_query]
 

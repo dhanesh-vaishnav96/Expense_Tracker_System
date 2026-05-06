@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Form, Response
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from backend.config.database import get_db
 import backend.models.index as models
 import backend.schemas.index as schemas
@@ -12,7 +13,8 @@ router = APIRouter(tags=["Authentication"])
 
 @router.post("/register", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    email_lower = user.email.lower().strip()
+    db_user = db.query(models.User).filter(func.lower(models.User.email) == email_lower).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
@@ -26,7 +28,8 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=schemas.Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == form_data.username).first()
+    username_lower = form_data.username.lower().strip()
+    user = db.query(models.User).filter(models.User.email == username_lower).first()
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     
@@ -41,10 +44,11 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 @router.post("/login-form")
 def login_form(response: Response, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-    print(f"Login attempt for: {username}")
-    user = db.query(models.User).filter(models.User.email == username).first()
+    username_clean = username.lower().strip()
+    print(f"Login attempt for: {username_clean}")
+    user = db.query(models.User).filter(func.lower(models.User.email) == username_clean).first()
     if not user or not auth_service.verify_password(password, user.password):
-        print(f"Login failed for: {username}")
+        print(f"Login failed for: {username_clean}")
         return RedirectResponse(url="/login?error=Invalid+credentials", status_code=status.HTTP_303_SEE_OTHER)
     
     print(f"Login successful for: {username}")
@@ -68,7 +72,8 @@ def login_form(response: Response, username: str = Form(...), password: str = Fo
 
 @router.post("/register-form")
 def register_form(name: str = Form(...), email: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.email == email).first()
+    email_clean = email.lower().strip()
+    db_user = db.query(models.User).filter(func.lower(models.User.email) == email_clean).first()
     if db_user:
         return RedirectResponse(url="/signup?error=Email+already+exists", status_code=status.HTTP_303_SEE_OTHER)
     
